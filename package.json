@@ -1,0 +1,25 @@
+{
+  "name": "aoc-template",
+  "version": "1.0.0",
+  "description": "A project template for solving advent of code challenges",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oldben87/aoc-template.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oldben87/aoc-template/issues"
+  },
+  "homepage": "https://github.com/oldben87/aoc-template#readme",
+  "devDependencies": {
+    "@types/node": "^20.10.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  }
+}
