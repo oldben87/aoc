@@ -75,4 +75,68 @@ const part1 = (data: CustomData) => {
   return Math.min(...results.map(({ mappedTo }) => mappedTo))
 }
 
-runAOC({ part1, customDataParser })
+type SeedRange = { start: number; range: number }
+
+const getSeedsAsRanges = (seeds: Array<number>): Array<SeedRange> => {
+  const parsedSeeds: Array<SeedRange> = []
+  for (let i = 0; i < seeds.length; i += 2) {
+    parsedSeeds.push({ start: seeds[i], range: seeds[i + 1] })
+  }
+  return parsedSeeds
+}
+
+const isAValidRangeValue = (value: number, seeds: Array<SeedRange>) => {
+  return seeds.some(({ start, range }) =>
+    isBetween(value, start, start + range - 1)
+  )
+}
+
+const reverse = ({ seeds, mappings }: CustomData) => {
+  // start at 0
+  // work upwards until true!
+  const seedRanges = getSeedsAsRanges(seeds)
+  const arrayOfMappings = Object.values(mappings).reverse()
+
+  let lowestLocation: number | undefined
+
+  let location = -1
+
+  while (lowestLocation === undefined) {
+    location++
+
+    let result = location
+
+    arrayOfMappings.forEach((mappings) => {
+      let hasMapped = false
+      const mappingsCopy = mappings.map((item) => item).reverse()
+      mappingsCopy.forEach(([destinationStart, sourceStart, range]) => {
+        if (hasMapped) {
+          return
+        }
+
+        const inDestinationRange = isBetween(
+          result,
+          destinationStart,
+          destinationStart + Math.max(range - 1, 0)
+        )
+
+        if (!inDestinationRange) {
+          return
+        }
+
+        const sourceOffset = sourceStart - destinationStart
+
+        result += sourceOffset
+        hasMapped = true
+      })
+    })
+
+    if (isAValidRangeValue(result, seedRanges)) {
+      lowestLocation = location
+    }
+  }
+
+  return lowestLocation
+}
+
+runAOC({ part1, part2: reverse, customDataParser })
