@@ -16,14 +16,12 @@ const parseData = (data: Array<string>) => {
   return result
 }
 
-const part1 = (data: Array<string>) => {
-  const parsed = parseData(data)
-
+const solvePuzzle = (data: ReturnType<typeof parseData>) => {
   const numberOfWins: Array<number> = []
 
-  for (let i = 0; i < parsed.Time.length; i++) {
-    const time = parsed.Time[i]
-    const distanceToBeat = parsed.Distance[i]
+  for (let i = 0; i < data.Time.length; i++) {
+    const time = data.Time[i]
+    const distanceToBeat = data.Distance[i]
     let winners = 0
     for (let pressedFor = 1; pressedFor < time; pressedFor++) {
       const remainingTime = time - pressedFor
@@ -36,7 +34,28 @@ const part1 = (data: Array<string>) => {
     numberOfWins.push(winners)
   }
 
+  return numberOfWins
+}
+
+const part1 = (data: Array<string>) => {
+  const parsed = parseData(data)
+
+  const numberOfWins = solvePuzzle(parsed)
+
   return multiply(...numberOfWins)
 }
 
-runAOC({ part1 })
+const part2 = (data: Array<string>) => {
+  const parsed = parseData(data)
+
+  const adjusted = {
+    Time: [Number(parsed.Time.join(""))],
+    Distance: [Number(parsed.Distance.join(""))],
+  }
+
+  const numberOfWins = solvePuzzle(adjusted)
+
+  return Math.max(...numberOfWins)
+}
+
+runAOC({ part1, part2 })
