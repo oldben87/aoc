@@ -28,9 +28,23 @@ const cardOrder = [
   "4",
   "3",
   "2",
-] as const
+]
 
-type CardType = (typeof cardOrder)[number]
+const newCardOrder = [
+  "A",
+  "K",
+  "Q",
+  "T",
+  "9",
+  "8",
+  "7",
+  "6",
+  "5",
+  "4",
+  "3",
+  "2",
+  "J",
+]
 
 type Hand = {
   hand: Array<string>
@@ -38,20 +52,24 @@ type Hand = {
   type: string
 }
 
-const assertIsCardType = (val: any): val is CardType => cardOrder.includes(val)
+const validateCardType = (val: any) => cardOrder.includes(val)
 
-const compareCards = (card1: string, card2: string): number => {
-  if (!assertIsCardType(card1) || !assertIsCardType(card2)) {
+const compareCards = (
+  card1: string,
+  card2: string,
+  cardRanking = cardOrder
+): number => {
+  if (!validateCardType(card1) || !validateCardType(card2)) {
     throw new Error(`invalid card supplied. card1: ${card1} || card2: ${card2}`)
   }
 
-  const card1Index = cardOrder.findIndex((card) => card1 === card)
-  const card2Index = cardOrder.findIndex((card) => card2 === card)
+  const card1Index = cardRanking.findIndex((card) => card1 === card)
+  const card2Index = cardRanking.findIndex((card) => card2 === card)
 
   return card2Index - card1Index
 }
 
-const getHandType = (hand: Array<string>) => {
+const getMatches = (hand: Array<string>) => {
   const matches: Record<string, number> = {}
 
   hand.forEach((card) => {
@@ -62,6 +80,10 @@ const getHandType = (hand: Array<string>) => {
     matches[card]++
   })
 
+  return matches
+}
+
+const getHandType = (matches: Record<string, number>) => {
   const numberOfMatches = Object.values(matches)
 
   if (numberOfMatches.length === 5) {
@@ -95,7 +117,11 @@ const getHandType = (hand: Array<string>) => {
   return HAND_TYPES.ONE_PAIR
 }
 
-const compareHands = (handA: Hand, handB: Hand): number => {
+const compareHands = (
+  handA: Hand,
+  handB: Hand,
+  cardRanking = cardOrder
+): number => {
   const handAIndex = handOrder.findIndex((type) => type === handA.type)
   const handBIndex = handOrder.findIndex((type) => type === handB.type)
   if (handAIndex === -1 || handBIndex === -1) {
@@ -116,7 +142,7 @@ const compareHands = (handA: Hand, handB: Hand): number => {
       continue
     }
 
-    result = compareCards(cardA, cardB)
+    result = compareCards(cardA, cardB, cardRanking)
     break
   }
   return result
@@ -127,7 +153,9 @@ const parseData = (data: Array<string>): Array<Hand> => {
     const [rawHand, rawBid] = handNBid.split(" ")
     const hand = rawHand.split("")
 
-    const type = getHandType(hand)
+    const matches = getMatches(hand)
+
+    const type = getHandType(matches)
 
     return { hand, bid: Number(rawBid), type }
   })
@@ -145,4 +173,48 @@ const part1 = (data: Array<string>) => {
   return add(...results)
 }
 
-runAOC({ part1 })
+const adjustForJoker = (matches: Record<string, number>) => {
+  const jokers = matches?.J
+  if (!jokers || jokers === 5) return matches
+
+  const orderedMatches = Object.entries(matches)
+    .filter((curr) => curr[0] !== "J")
+    .sort((a, b) => b[1] - a[1])
+    .reduce<Record<string, number>>((acc, [key, val], index) => {
+      const newValue = index === 0 ? val + jokers : val
+
+      acc[key] = newValue
+      return acc
+    }, {})
+
+  return orderedMatches
+}
+
+const parseDataPt2 = (data: Array<string>): Array<Hand> => {
+  return data.map((handNBid) => {
+    const [rawHand, rawBid] = handNBid.split(" ")
+    const hand = rawHand.split("")
+
+    const matches = getMatches(hand)
+
+    const adjustedMatches = adjustForJoker(matches)
+
+    const type = getHandType(adjustedMatches)
+
+    return { hand, bid: Number(rawBid), type }
+  })
+}
+
+const part2 = (data: Array<string>) => {
+  const hands = parseDataPt2(data)
+
+  const sortedHands = hands.sort((a, b) => compareHands(a, b, newCardOrder))
+
+  const results = sortedHands.map(({ bid }, index) => {
+    return multiply(bid, index + 1)
+  })
+
+  return add(...results)
+}
+
+runAOC({ part1, part2 })
