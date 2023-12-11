@@ -1,5 +1,6 @@
 import { Coords } from "../../types"
 import add from "../../utils/add"
+import { getCoordsAsKey } from "../../utils/coordHelpers"
 import { getDistanceFromCoords } from "../../utils/coordHelpers"
 import runAOC from "../../utils/runAOC"
 
@@ -49,22 +50,11 @@ const expandGalaxy = (data: Array<string>) => {
   return newColumns
 }
 
-const calculateMinimumDistances = (data: Array<string>) => {
-  const galaxies: Array<Coords> = []
-  for (let row = 0; row < data.length; row++) {
-    for (let column = 0; column < data[0].length; column++) {
-      if (isGalaxy(data[row][column])) {
-        galaxies.push({ y: row, x: column })
-      } else {
-        continue
-      }
-    }
-  }
-
+const getDistanceFromCoordinates = (distances: Array<Coords>): number => {
   let distance = 0
-  galaxies.forEach((coords, ind, array) => {
+  distances.forEach((coords, ind, array) => {
     array.forEach((subCoords, index) => {
-      if (coords === subCoords || index < ind) {
+      if (getCoordsAsKey(coords) === getCoordsAsKey(subCoords) || index < ind) {
         return
       }
 
@@ -76,10 +66,78 @@ const calculateMinimumDistances = (data: Array<string>) => {
   return distance
 }
 
+const calculateMinimumDistances = (
+  data: Array<string>,
+  rows: Array<number> = [],
+  columns: Array<number> = [],
+  expansionFactor = 1
+) => {
+  const galaxies: Array<Coords> = []
+  for (let row = 0; row < data.length; row++) {
+    for (let column = 0; column < data[0].length; column++) {
+      if (isGalaxy(data[row][column])) {
+        galaxies.push({
+          y: adjustForExpansion(row, rows, expansionFactor),
+          x: adjustForExpansion(column, columns, expansionFactor),
+        })
+      } else {
+        continue
+      }
+    }
+  }
+
+  return getDistanceFromCoordinates(galaxies)
+}
+
+const adjustForExpansion = (
+  value: number,
+  expandedSpaces: Array<number>,
+  multiplier = 1
+) => {
+  const filtered = expandedSpaces.filter((space) => value > space)
+
+  if (filtered.length) {
+    const timesToMultiply = filtered.length
+
+    return value - timesToMultiply + multiplier * timesToMultiply
+  }
+
+  return value
+}
+
+const expandGalaxyCoords = (data: Array<string>) => {
+  const rowsExpanded: Array<number> = []
+  const columnsExpanded: Array<number> = []
+
+  data.forEach((row, index) => {
+    const newRow = row.split("")
+    if (newRow.every((toCheck) => !isGalaxy(toCheck))) {
+      rowsExpanded.push(index)
+    }
+  })
+
+  for (let column = 0; column < data[0].length; column++) {
+    const checkColumn = []
+
+    for (let row = 0; row < data.length; row++) {
+      checkColumn.push(data[row][column])
+    }
+
+    if (checkColumn.every((toCheck) => !isGalaxy(toCheck))) {
+      columnsExpanded.push(column)
+    }
+  }
+  return calculateMinimumDistances(data, rowsExpanded, columnsExpanded, 1000000)
+}
+
 const part1 = (data: Array<string>) => {
   const expandedGalaxy = expandGalaxy(data)
 
-  return calculateMinimumDistances(expandedGalaxy)
+  return calculateMinimumDistances(expandedGalaxy, [], [], 1)
 }
 
-runAOC({ part1 })
+const part2 = (data: Array<string>) => {
+  return expandGalaxyCoords(data)
+}
+
+runAOC({ part1, part2 })
