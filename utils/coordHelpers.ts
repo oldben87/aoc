@@ -18,3 +18,10 @@ export const getDistanceFromCoords = (
 ) => {
   return Math.abs(xA - xB) + Math.abs(yA - yB)
 }
+
+export const addCoords = (
+  { x: xA, y: yA }: Coords,
+  { x: xB, y: yB }: Coords
+): Coords => {
+  return { x: xA + xB, y: yA + yB }
+}
