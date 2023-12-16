@@ -52,43 +52,36 @@ const movements: Record<PipePiece, Array<Direction>> = {
   "-": ["east", "west"],
   L: ["north", "east"],
 }
-const canMove = (currentPiece: string, targetPiece: string) => {
-  if (currentPiece === "." || targetPiece === ".") {
-    return false
+
+const findPieceByDirections = (
+  directionsToCheck: Array<Direction>
+): PipePiece | undefined => {
+  if (directionsToCheck.length !== 2) {
+    throw new Error(
+      "Invalid directionsToCheck Provided: " + directionsToCheck.join(", ")
+    )
+  }
+  const result = Object.entries(movements).find(([_, compareAgainst]) => {
+    return compareAgainst.every((val) => directionsToCheck.includes(val))
+  })
+
+  if (result) {
+    return result[0] as PipePiece
   }
 
-  if (!assertPipePiece(currentPiece) || !assertPipePiece(targetPiece)) {
-    throw new Error("not pipe piece")
-  }
-
-  const current = movements[currentPiece]
-  const target = movements[targetPiece]
-
-  let canMove: Direction | undefined
-  for (let i = 0; i < current.length; i++) {
-    for (let j = 0; j < target.length; j++) {
-      const targetDirection = getTargetMatch(current[i])
-      if (targetDirection === target[j]) {
-        canMove = current[i]
-      }
-    }
-  }
-
-  if (canMove) {
-    return true
-  }
-
-  return false
+  return
 }
 
 const findStart = (
   data: Array<string>
-): { coords: Coords; directions: Array<Direction> } => {
+): { coords: Coords; piece: PipePiece } => {
   let coords: Coords | undefined
   for (let row = 0; row < data.length; row++) {
+    if (coords) break
     for (let column = 0; column < data[0].length; column++) {
       if (data[row][column] === "S") {
         coords = { x: column, y: row }
+        break
       }
     }
   }
@@ -121,57 +114,67 @@ const findStart = (
     }
   })
 
-  return { coords, directions: validDirections }
+  const piece = findPieceByDirections(validDirections)
+
+  if (!piece) {
+    throw new Error("Unble to find piece")
+  }
+
+  return { coords, piece }
 }
 
-const findNextCoord = (
+const makeNextMove = (
   data: Array<string>,
-  { x, y }: Coords,
-  exclude?: Direction
+  coords: Coords,
+  nextDirection: Direction
 ) => {
-  const filteredDirections = exclude
-    ? directions.filter((dir) => dir !== exclude)
-    : directions
+  const nextCoords = addCoords(coords, getCoordShift(nextDirection))
+  const nextPiece = data[nextCoords.y][nextCoords.x]
 
-  const currentVal = data[y][x]
+  if (nextPiece !== "S" && !assertPipePiece(nextPiece)) {
+    throw new Error("Come off the rails with: " + nextPiece)
+  }
 
-  let nextCoordinate: Coords | undefined
+  if (nextPiece === "S") {
+    return { coords: nextCoords }
+  }
 
-  filteredDirections.forEach((dir) => {
-    const shiftedCoords = getCoordShift(dir)
-    const newCoords = addCoords({ x, y }, shiftedCoords)
-    const valueToCheck = data[newCoords.y][newCoords.x]
-
-    if (!valueToCheck || !assertPipePiece(valueToCheck)) {
-      return
-    }
-
-    if (!assertPipePiece(currentVal)) {
-      throw new Error("Bad current value: " + currentVal)
-    }
-
-    const movementValid = canMove(currentVal, valueToCheck)
-
-    if (movementValid) {
-      nextCoordinate = shiftedCoords
-    }
+  const newNextDirections = movements[nextPiece].filter((val, _, arr) => {
+    return val !== getTargetMatch(nextDirection)
   })
 
-  return nextCoordinate
+  if (newNextDirections.length !== 1) {
+    throw new Error("not filtered the previous direction from current piece")
+  }
+
+  return { coords: nextCoords, nextDirection: newNextDirections[0] }
 }
 
 const part1 = (data: Array<string>) => {
   const start = findStart(data)
+  const nextDirection = movements[start.piece][1]
 
-  let previousDirection = start.directions[1]
+  const nextMove = makeNextMove(data, start.coords, nextDirection)
 
-  // breaking due to S not a valid pipe piece
-  const next = findNextCoord(data, start.coords, previousDirection)
-  console.log(next)
+  let steps = 1
+  let coords = nextMove.coords
+  let directionOfTravel = nextDirection
 
-  // make recursive function to return number?
+  while (data[coords.y][coords.x] !== "S") {
+    const move = makeNextMove(data, coords, directionOfTravel)
 
-  return start as unknown as string
+    coords = move.coords
+    steps++
+
+    if (!move.nextDirection) {
+      console.log(steps)
+      continue
+    }
+
+    directionOfTravel = move.nextDirection
+  }
+
+  return steps / 2
 }
 
 runAOC({ part1 })
